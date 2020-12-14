@@ -16,16 +16,21 @@ fun main() {
                 && p.fileName.toString().endsWith(".java")
 //                && p.fileName.toString() == "ApplicationContextAssert.java" //This file throws a StringIndexOutOfBoundsException
     }
+    val meterRegistry = MetricsDestinations.prometheus()
 
     val paths = Files.find(srcDir, 999, predicate).toList()
     val start = System.nanoTime()
     val parser: JavaParser = JavaParser.fromJavaVersion()
         .classpath(getDependencies(srcDir.toAbsolutePath()))
-        .logCompilationWarningsAndErrors(false) // optional, for quiet parsing
+        .meterRegistry(meterRegistry)
+        .logCompilationWarningsAndErrors(true) // optional, for quiet parsing
         .build()
     println("Loaded ${paths.size} files and project dependencies in ${(System.nanoTime() - start)*1e-6}ms")
     parser.parse(paths, srcDir)
     println("Parsed ${paths.size} files in ${(System.nanoTime() - start)*1e-6}ms")
+    //sleep long enough to make sure Prometheus can scape the last metrics.
+    Thread.sleep(10000);
+    meterRegistry.close()
 
 }
 
